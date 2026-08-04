@@ -1,0 +1,14 @@
+from agents.strategy_agent import StrategyAgent
+
+
+from graph.state import StrategyState
+
+agent = StrategyAgent()
+
+def strategy_node(state: StrategyState):
+
+    result = agent.run(strategy=state["strategy"])
+
+    return {
+        "strategy_result": result
+    }

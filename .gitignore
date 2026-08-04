@@ -1,0 +1,71 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.antigravityignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+
+# Node / Web App (apps/web)
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+.yarn/
+coverage/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local Data / Docker Volumes
+data/
+postgres_data/
+qdrant_data/
+*.log
+
+# Type checking / Cache
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+tsconfig.tsbuildinfo
+.eslintcache

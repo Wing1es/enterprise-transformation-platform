@@ -1,0 +1,14 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+langgraph>=0.0.30
+litellm>=1.30.0
+qdrant-client>=1.8.0
+networkx>=3.2
+python-dotenv>=1.0.1
+requests>=2.31.0
+playwright>=1.42.0
+duckduckgo-search>=8.0.0
