@@ -20,3 +20,5 @@ services:
         sync: false # User must set this manually in the dashboard
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PYTHONPATH
+        value: src
