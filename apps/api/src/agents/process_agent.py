@@ -13,6 +13,7 @@ class ProcessAgent:
         self,
         stage_name: str,
         strategy: str,
+        api_key: str = "",
     ) -> StageProcesses:
 
         prompt = f"""

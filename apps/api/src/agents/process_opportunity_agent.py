@@ -47,7 +47,7 @@ Return ONLY valid JSON matching this structure:
 
 
 class ProcessOpportunityAgent:
-    def run(self, stage_name: str, strategy: str) -> StageProcesses:
+    def run(self, stage_name: str, strategy: str, api_key: str = "") -> StageProcesses:
         # Call Research MCP tool for evidence
         research = research_process_evidence(stage_name)
 
