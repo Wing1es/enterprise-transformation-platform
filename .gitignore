@@ -69,3 +69,8 @@ qdrant_data/
 .ruff_cache/
 tsconfig.tsbuildinfo
 .eslintcache
+
+# Project specific ignores
+modus-assignment12-blueprint-2.md
+modus-assignment12-blueprint.md
+MODUS ENTERPRISE AI BUILD CHALLENGE.pdf

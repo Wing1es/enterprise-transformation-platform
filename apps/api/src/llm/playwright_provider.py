@@ -34,6 +34,13 @@ class PersistentPlaywrightLLMProvider:
             try:
                 # 1. Navigate to target URL
                 page.goto(self.target_url, timeout=timeout_ms)
+                
+                # Clear DDG session state so old chat history doesn't interfere
+                if "duckduckgo" in self.target_url.lower():
+                    context.clear_cookies()
+                    page.evaluate("window.localStorage.clear(); window.sessionStorage.clear();")
+                    page.reload(timeout=timeout_ms)
+                    
                 time.sleep(2)
 
                 # 2. Handle ChatGPT Web UI vs DDG Chat vs Gemini
@@ -59,28 +66,27 @@ class PersistentPlaywrightLLMProvider:
                     
                     if response_elems:
                         current_text = response_elems[-1].inner_text()
-                    else:
-                        # Fallback to entire page body text
-                        current_text = page.inner_text("body")
-
-                    if current_text and current_text == last_text and len(current_text.strip()) > 30:
-                        stable_count += 1
-                        if stable_count >= 3:
-                            break
-                    else:
-                        stable_count = 0
-                        last_text = current_text
+                        if current_text and current_text == last_text and len(current_text.strip()) > 10:
+                            stable_count += 1
+                            if stable_count >= 3:
+                                break
+                        else:
+                            stable_count = 0
+                            last_text = current_text
+                    
                     time.sleep(1.5)
 
                 context.close()
 
-                if not last_text:
-                    raise RuntimeError("No output generated from Web LLM page.")
+                if not last_text or len(last_text.strip()) < 10:
+                    raise RuntimeError("No output generated from Web LLM page (Bot failed to reply).")
 
-                # Extract JSON from real output
+                # Try to extract JSON
                 match = re.search(r"\{.*\}", last_text, re.DOTALL)
                 if match:
                     return match.group(0)
+                
+                # For plain text responses, return the raw text
                 return last_text
 
             except Exception as e:
