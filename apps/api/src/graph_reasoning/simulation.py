@@ -12,22 +12,14 @@ def run_simulation(db: Session, action: str, target_id: int, params: dict) -> di
     G_sim = copy.deepcopy(G_live)
 
     if action == "automate_activity":
-        return _simulate_automate_activity(G_live, G_sim, target_id, params, db=db)
+        return _simulate_automate_activity(G_live, G_sim, target_id, params)
     elif action == "delay_initiative":
-        return _simulate_delay_initiative(G_live, G_sim, target_id, params, db=db)
+        return _simulate_delay_initiative(G_live, G_sim, target_id, params)
     else:
         return {"error": f"Unsupported simulation action: {action}"}
 
 
-from db.models.organisation import Organisation
-
-def _get_org_name(db: Session) -> str:
-    org = db.query(Organisation).first()
-    return org.name if org else "Meridian Retail Group"
-
-
-def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_id: int, params: dict, db: Session = None) -> dict:
-    org_name = _get_org_name(db) if db else "Meridian Retail Group"
+def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_id: int, params: dict) -> dict:
     target_node = f"activity:{activity_id}"
     if not G_sim.has_node(target_node):
         return {"error": f"Activity {activity_id} not found in graph."}
@@ -68,16 +60,15 @@ def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_
 
     target_label = G_sim.nodes[target_node].get("label", f"Activity {activity_id}")
     try:
-        summary = query_sim_agent.narrate_simulation("automate_activity", target_label, diff_payload, org_name=org_name)
+        summary = query_sim_agent.narrate_simulation("automate_activity", target_label, diff_payload)
     except Exception:
-        summary = f"Automating '{target_label}' at {org_name} optimizes operational throughput, reclassifies associated skills to AI-augmented, and elevates risk governance sign-off requirements."
+        summary = f"Automating '{target_label}' optimizes operational throughput, reclassifies associated skills to AI-augmented, and elevates risk governance sign-off requirements."
     diff_payload["summary"] = summary
 
     return diff_payload
 
 
-def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative_id: int, params: dict, db: Session = None) -> dict:
-    org_name = _get_org_name(db) if db else "Meridian Retail Group"
+def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative_id: int, params: dict) -> dict:
     target_node = f"initiative:{initiative_id}"
     delay_months = params.get("delay_months", 6)
 
@@ -113,9 +104,9 @@ def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative
 
     target_label = G_sim.nodes[target_node].get("label", f"Initiative {initiative_id}")
     try:
-        summary = query_sim_agent.narrate_simulation("delay_initiative", target_label, diff_payload, org_name=org_name)
+        summary = query_sim_agent.narrate_simulation("delay_initiative", target_label, diff_payload)
     except Exception:
-        summary = f"Delaying '{target_label}' by {delay_months} months at {org_name} causes cascade delays across downstream dependent initiatives."
+        summary = f"Delaying '{target_label}' by {delay_months} months causes cascade delays across downstream dependent initiatives."
     diff_payload["summary"] = summary
 
     return diff_payload

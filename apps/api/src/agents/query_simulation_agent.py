@@ -46,7 +46,7 @@ def _summarize_evidence(chunks: list[dict]) -> str:
     return "\n".join(lines)
 
 
-QUERY_PROMPT = """You are the Executive Query & Simulation Intelligence Agent for {org_name}'s Enterprise Digital Twin.
+QUERY_PROMPT = """You are the Executive Query & Simulation Intelligence Agent for Meridian Retail Group's Enterprise Digital Twin.
 
 Answer the user's question with precise business insights and structured rationale.
 
@@ -62,7 +62,7 @@ Provide a direct, authoritative executive response."""
 
 
 class QuerySimulationAgent:
-    def answer_query(self, question: str, graph_context: dict | list, org_name: str = "Meridian Retail Group", vector_query: str | None = None) -> str:
+    def answer_query(self, question: str, graph_context: dict | list, vector_query: str | None = None) -> str:
         search_term = vector_query or question
         vector_chunks = vector_service.search_evidence(search_term, limit=3)
 
@@ -70,7 +70,6 @@ class QuerySimulationAgent:
         vector_summary = _summarize_evidence(vector_chunks)
 
         prompt = QUERY_PROMPT.format(
-            org_name=org_name,
             question=question,
             graph_summary=graph_summary,
             vector_summary=vector_summary,
@@ -80,19 +79,18 @@ class QuerySimulationAgent:
             return llm.invoke(prompt)
         except Exception:
             return (
-                f"Executive Transformation Advisory for {org_name}:\n\n"
-                f"Based on our Enterprise Digital Twin knowledge graph analysis, {org_name} should prioritize "
+                f"Executive Transformation Advisory for Meridian Retail Group:\n\n"
+                f"Based on our Enterprise Digital Twin knowledge graph analysis, Meridian should prioritize "
                 f"'Predictive Machine Learning Demand Forecasting' (Priority Score: 0.92) and 'Automated Dynamic Markdown Optimization' (Priority Score: 0.88). "
                 f"These high-impact initiatives optimize supply chain working capital, reduce stockouts by 45%, and enhance gross margins by 4.5%."
             )
-
-    def narrate_simulation(self, scenario_type: str, target_name: str, diff_data: dict, org_name: str = "Meridian Retail Group") -> str:
+    def narrate_simulation(self, scenario_type: str, target_name: str, diff_data: dict) -> str:
         # Keep simulation diffs concise too
         diff_str = json.dumps(diff_data, indent=2, default=str)
         if len(diff_str) > 1500:
             diff_str = diff_str[:1500] + "\n..."
 
-        prompt = f"""You are the Transformation Simulation Agent for {org_name}.
+        prompt = f"""You are the Transformation Simulation Agent for Meridian Retail Group.
 Narrate the impact of this simulation:
 
 Scenario: {scenario_type}
@@ -103,5 +101,4 @@ Diff: {diff_str}
 Provide a concise executive summary."""
 
         return llm.invoke(prompt)
-
 
