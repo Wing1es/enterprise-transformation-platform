@@ -1,12 +1,10 @@
-services:
-  # Managed PostgreSQL Database
-  - type: pserv
-    name: modus-postgres
-    env: postgres
+databases:
+  - name: modus-postgres
     plan: free
     databaseName: modus
     user: postgres
 
+services:
   # FastAPI Web Service
   - type: web
     name: modus-api
