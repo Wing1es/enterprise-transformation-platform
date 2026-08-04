@@ -1,8 +1,6 @@
 databases:
   - name: modus-postgres
     plan: free
-    databaseName: modus
-    user: postgres
 
 services:
   # FastAPI Web Service
