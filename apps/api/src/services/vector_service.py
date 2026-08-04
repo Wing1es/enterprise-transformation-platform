@@ -7,8 +7,10 @@ from qdrant_client.http import models as qmodels
 
 logger = logging.getLogger(__name__)
 
+QDRANT_URL = os.getenv("QDRANT_URL", None)
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 
 EVIDENCE_COLLECTION = "evidence_chunks"
 GOVERNANCE_COLLECTION = "governance_sources"
@@ -28,7 +30,10 @@ def simple_embedding(text: str, dim: int = 1536) -> list[float]:
 
 class VectorService:
     def __init__(self):
-        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        if QDRANT_URL:
+            self.client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+        else:
+            self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, api_key=QDRANT_API_KEY)
         self._init_collections()
         self._seed_governance_sources()
 
