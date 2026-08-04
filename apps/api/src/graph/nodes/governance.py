@@ -25,6 +25,7 @@ def governance_node(state):
             description=opp.description,
             benefits=opp.business_benefit,
             risks=[opp.risks] if isinstance(opp.risks, str) else opp.risks,
+            api_key=state.get("api_key", ""),
         )
         outputs.append(res)
 

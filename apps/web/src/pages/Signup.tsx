@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 export function Signup() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -14,7 +17,7 @@ export function Signup() {
     setIsLoading(true);
     
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
+      const res = await fetch(`${API_URL}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -35,6 +38,7 @@ export function Signup() {
       localStorage.setItem('auth_token', data.access_token);
       if (data.user?.name) localStorage.setItem('user_name', data.user.name);
       if (data.user?.email) localStorage.setItem('user_email', data.user.email);
+
       navigate('/setup');
     } catch (err: any) {
       alert(err.message);
@@ -144,6 +148,8 @@ export function Signup() {
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               />
             </div>
+
+
 
             <button 
               type="submit" 

@@ -62,7 +62,7 @@ Provide a direct, authoritative executive response."""
 
 
 class QuerySimulationAgent:
-    def answer_query(self, question: str, graph_context: dict | list, vector_query: str | None = None) -> str:
+    def answer_query(self, question: str, graph_context: dict | list, vector_query: str | None = None, api_key: str = "") -> str:
         search_term = vector_query or question
         vector_chunks = vector_service.search_evidence(search_term, limit=3)
 
@@ -76,7 +76,7 @@ class QuerySimulationAgent:
         )
 
         try:
-            return llm.invoke(prompt)
+            return llm.invoke(prompt, api_key=api_key, json_mode=False)
         except Exception:
             return (
                 f"Executive Transformation Advisory for Meridian Retail Group:\n\n"
@@ -84,7 +84,7 @@ class QuerySimulationAgent:
                 f"'Predictive Machine Learning Demand Forecasting' (Priority Score: 0.92) and 'Automated Dynamic Markdown Optimization' (Priority Score: 0.88). "
                 f"These high-impact initiatives optimize supply chain working capital, reduce stockouts by 45%, and enhance gross margins by 4.5%."
             )
-    def narrate_simulation(self, scenario_type: str, target_name: str, diff_data: dict) -> str:
+    def narrate_simulation(self, scenario_type: str, target_name: str, diff_data: dict, api_key: str = "") -> str:
         # Keep simulation diffs concise too
         diff_str = json.dumps(diff_data, indent=2, default=str)
         if len(diff_str) > 1500:
@@ -100,5 +100,5 @@ Diff: {diff_str}
 
 Provide a concise executive summary."""
 
-        return llm.invoke(prompt)
+        return llm.invoke(prompt, api_key=api_key, json_mode=False)
 

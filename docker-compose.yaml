@@ -37,9 +37,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres:5432/modus"
       QDRANT_URL: "http://qdrant:6333"
-      LLM_PROVIDER: "playwright"
-      LLM_MODEL: "playwright"
-      WEB_LLM_URL: "https://duckduckgo.com/chat"
+
     volumes:
       - ./apps/api/src:/app/src
       - ./data:/app/data

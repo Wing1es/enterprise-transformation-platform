@@ -5,11 +5,13 @@ import {
   ArrowRight, X, CheckCircle2, Sliders, Database, Building2, Plus,
   Search, PanelLeft, Settings, HelpCircle, Compass, FileText, User,
   Mic, MessageSquare, Shield, Activity, Lightbulb, Briefcase, Layers,
-  Square, Trash2, Loader2
+  Square, Trash2, Loader2, Pencil
 } from 'lucide-react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { GraphView } from '../components/GraphView';
 import { PipelineFlowView } from '../components/PipelineFlowView';
+import { API_URL } from '../config';
+
 
 /* ── Types ────────────────────────────────────────────── */
 interface ThinkingStep {
@@ -280,14 +282,58 @@ export function Dashboard() {
 
   const [orgName, setOrgName] = useState(() => localStorage.getItem('org_name') || 'Transformation Retail Group');
 
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSessionTitle, setEditingSessionTitle] = useState('');
+
+  const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    setSessions(prev => {
+      const updated = prev.filter(s => s.id !== sessionId);
+      localStorage.setItem('ti_saved_sessions', JSON.stringify(updated));
+      return updated;
+    });
+    fetch(`${API_URL}/api/v1/chats/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    if (currentSessionId === sessionId) {
+      startNewChat();
+    }
+  };
+
+  const handleEditSessionSubmit = (e: React.MouseEvent | React.KeyboardEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (!editingSessionTitle.trim()) {
+      setEditingSessionId(null);
+      return;
+    }
+    setSessions(prev => {
+      const updated = prev.map(s => s.id === sessionId ? { ...s, title: editingSessionTitle } : s);
+      localStorage.setItem('ti_saved_sessions', JSON.stringify(updated));
+      const sessionToSync = updated.find(s => s.id === sessionId);
+      if (sessionToSync) syncSessionToBackend(sessionId, editingSessionTitle, sessionToSync.messages);
+      return updated;
+    });
+    setEditingSessionId(null);
+  };
+
+  const [apiKey, setApiKey] = useState(localStorage.getItem('llm_api_key') || '');
+  const [showKey, setShowKey] = useState(false);
+  const [showSettings, setShowSettings] = useState(!localStorage.getItem('llm_api_key'));
+
+  useEffect(() => {
+    if (apiKey) {
+      localStorage.setItem('llm_api_key', apiKey);
+    } else {
+      localStorage.removeItem('llm_api_key');
+    }
+  }, [apiKey]);
+
   // Fetch chat sessions for current user from PostgreSQL backend API on mount
   useEffect(() => {
     const fetchBackendSessions = async () => {
       try {
         const userEmail = localStorage.getItem('user_email');
         const url = userEmail
-          ? `http://localhost:8000/api/v1/chats?user_email=${encodeURIComponent(userEmail)}`
-          : 'http://localhost:8000/api/v1/chats';
+          ? `${API_URL}/api/v1/chats?user_email=${encodeURIComponent(userEmail)}`
+          : `${API_URL}/api/v1/chats`;
 
         const res = await fetch(url);
         if (res.ok) {
@@ -320,7 +366,7 @@ export function Dashboard() {
   // Sync to PostgreSQL backend DB whenever active session or messages change
   const syncSessionToBackend = async (sessionId: string, title: string, msgs: Msg[]) => {
     try {
-      await fetch('http://localhost:8000/api/v1/chats', {
+      await fetch(`${API_URL}/api/v1/chats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -368,7 +414,7 @@ export function Dashboard() {
   useEffect(() => {
     const fetchOrgFromBackend = async () => {
       try {
-        const res = await fetch('http://localhost:8000/organisations/current');
+        const res = await fetch(`${API_URL}/organisations/current`);
         if (res.ok) {
           const org = await res.json();
           if (org.name) {
@@ -528,7 +574,7 @@ export function Dashboard() {
     if (isQ) {
       try {
         pushStepProgress('Traversing NetworkX multi-hop dependency graph…', undefined, 50, 'Traversing Graph Nodes…');
-        const r = await fetch('http://localhost:8000/query', {
+        const r = await fetch(`${API_URL}/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: raw }),
@@ -566,7 +612,7 @@ export function Dashboard() {
     /* ── Pipeline streaming path ──────────────────── */
     try {
       const res = await fetch(
-        `http://localhost:8000/ingest/strategy/stream?statement=${encodeURIComponent(raw)}`,
+        `${API_URL}/ingest/strategy/stream?statement=${encodeURIComponent(raw)}`,
         { signal: abortControllerRef.current.signal }
       );
       if (!res.body) throw new Error('No stream');
@@ -649,7 +695,7 @@ export function Dashboard() {
 
             if (ev.event === 'complete') {
               // Fetch full graph state
-              const sr = await fetch('http://localhost:8000/graph/state');
+              const sr = await fetch(`${API_URL}/graph/state`);
               if (sr.ok) {
                 const gd = await sr.json();
                 setHasGraph(true);
@@ -664,8 +710,8 @@ export function Dashboard() {
                 `**Created entities:**`,
                 `- ${sc.value_chain_stages_count ?? 6} Value Chain Stages with core processes & sequential activities`,
                 `- ${sc.processes_count ?? 5} Processes mapped to AI automation opportunities`,
-                `- 11 Roles with 6-class skill transitions (emerging → ai_augmented → declining)`,
-                `- 10-area governance audit findings citing EU AI Act, NIST AI RMF 1.0, and India DPDP Act 2023`,
+                `- ${sc.roles_count ?? 11} Roles with 6-class skill transitions (emerging → ai_augmented → declining)`,
+                `- ${sc.governance_count ?? 10}-area governance audit findings citing EU AI Act, NIST AI RMF 1.0, and India DPDP Act 2023`,
                 `- ${sc.initiatives_count ?? 4} Strategic transformation initiatives with NetworkX dependency edges`,
                 ``,
                 `All entities are persisted in PostgreSQL and indexed in the Qdrant vector store.`,
@@ -750,6 +796,9 @@ export function Dashboard() {
         }
         .nav-btn:hover { background: #1a1a1a !important; color: #fff !important; }
         .sug-card:hover { border-color: #0ea5e9 !important; background: #121212 !important; }
+        .session-actions { opacity: 0.4; transition: opacity 0.2s; }
+        .session-item:hover .session-actions { opacity: 1; }
+        .session-actions button:hover { color: #ffffff !important; }
       `}</style>
 
       <div style={{
@@ -832,46 +881,98 @@ export function Dashboard() {
                 </button>
 
                 {/* Workspace Navigation */}
-                <div style={{ fontSize: 11, fontWeight: 800, color: t.text3, padding: '0 8px', marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
-                  Digital Twin Platform
-                </div>
+                {(hasGraph || messages.some(m => m.showGraph)) && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: t.text3, padding: '0 8px', marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
+                      Digital Twin Platform
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24, flexShrink: 0 }}>
+                      <button
+                        onClick={() => setPipelineOpen(true)}
+                        style={{
+                          all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text, fontWeight: 600,
+                        }}
+                        className="nav-btn"
+                      >
+                        <Layers size={16} color={t.accent} />
+                        <span>5-Agent Pipeline</span>
+                      </button>
+
+                      <button
+                        onClick={() => setGraphOpen(true)}
+                        style={{
+                          all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text, fontWeight: 600,
+                        }}
+                        className="nav-btn"
+                      >
+                        <Network size={16} color={t.accent} />
+                        <span>Explore Knowledge Graph</span>
+                      </button>
+
+                      <button
+                        onClick={() => navigate('/profile?tab=vector')}
+                        style={{
+                          all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text2, fontWeight: 500,
+                        }}
+                        className="nav-btn"
+                      >
+                        <Database size={16} color="#22c55e" />
+                        <span>Qdrant Document Ingestion</span>
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24, flexShrink: 0 }}>
-                  <button
-                    onClick={() => setPipelineOpen(true)}
-                    style={{
-                      all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text, fontWeight: 600,
-                    }}
-                    className="nav-btn"
-                  >
-                    <Layers size={16} color={t.accent} />
-                    <span>5-Agent Pipeline</span>
-                  </button>
 
+
+                  {/* Settings Toggle added here */}
                   <button
-                    onClick={() => setGraphOpen(true)}
+                    onClick={() => setShowSettings(!showSettings)}
                     style={{
                       all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text2, fontWeight: 500,
                     }}
                     className="nav-btn"
                   >
-                    <Network size={16} color="#8b5cf6" />
-                    <span>Knowledge Graph</span>
+                    <Settings size={16} color="#94a3b8" />
+                    <span>API Settings</span>
                   </button>
 
-                  <button
-                    onClick={() => navigate('/profile?tab=vector')}
-                    style={{
-                      all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 12px', borderRadius: 8, fontSize: 13, color: t.text2, fontWeight: 500,
-                    }}
-                    className="nav-btn"
-                  >
-                    <Database size={16} color="#22c55e" />
-                    <span>Qdrant Document Ingestion</span>
-                  </button>
+                  {showSettings && (
+                    <div style={{ padding: '4px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6, width: '100%', boxSizing: 'border-box' }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: t.text3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        LLM API Key
+                      </label>
+                      <div style={{ display: 'flex', gap: 6, width: '100%', boxSizing: 'border-box' }}>
+                        <input
+                          type={showKey ? "text" : "password"}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="sk-..."
+                          style={{
+                            flex: 1, minWidth: 0, padding: '6px 10px', fontSize: 12, borderRadius: 6,
+                            backgroundColor: t.surface, border: `1px solid ${t.border}`,
+                            color: t.text, outline: 'none', boxSizing: 'border-box'
+                          }}
+                        />
+                        <button
+                          onClick={() => setShowKey(!showKey)}
+                          style={{
+                            padding: '6px 10px', backgroundColor: t.surface2, border: `1px solid ${t.border}`,
+                            borderRadius: 6, fontSize: 11, fontWeight: 600, color: t.text2, cursor: 'pointer',
+                            flexShrink: 0
+                          }}
+                        >
+                          {showKey ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* History Session Links */}
@@ -883,27 +984,64 @@ export function Dashboard() {
                   {sessions.map(s => {
                     const isSelected = currentSessionId === s.id;
                     const isRunningNow = s.isExecuting || (isSelected && busy);
+                    const isEditing = editingSessionId === s.id;
 
                     return (
                       <div
                         key={s.id}
-                        onClick={() => loadSession(s)}
+                        onClick={() => !isEditing && loadSession(s)}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                           padding: '8px 10px', borderRadius: 8, fontSize: 13,
                           color: isSelected ? '#ffffff' : t.text2,
                           backgroundColor: isSelected ? '#18181b' : 'transparent',
-                          cursor: 'pointer', transition: 'all 0.15s',
+                          cursor: isEditing ? 'default' : 'pointer', transition: 'all 0.15s',
                         }}
-                        className="nav-btn"
+                        className="nav-btn session-item"
                       >
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 6 }}>
-                          {s.title}
-                        </span>
+                        {isEditing ? (
+                          <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 6 }} onClick={e => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              value={editingSessionTitle}
+                              onChange={(e) => setEditingSessionTitle(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleEditSessionSubmit(e, s.id); }}
+                              style={{ 
+                                flex: 1, background: '#000', border: `1px solid ${t.border}`, 
+                                color: '#fff', fontSize: 12, padding: '4px 6px', borderRadius: 4, outline: 'none' 
+                              }}
+                            />
+                            <button onClick={(e) => handleEditSessionSubmit(e, s.id)} style={{ background: 'none', border: 'none', color: t.green, cursor: 'pointer', padding: 2 }}>
+                              <CheckCircle2 size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 6 }}>
+                              {s.title}
+                            </span>
 
-                        {/* Spinner next to executing chat */}
-                        {isRunningNow && (
-                          <Loader2 size={13} className="spin-loader" color="#0ea5e9" style={{ flexShrink: 0 }} />
+                            {isRunningNow ? (
+                              <Loader2 size={13} className="spin-loader" color="#0ea5e9" style={{ flexShrink: 0 }} />
+                            ) : (
+                              <div className="session-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setEditingSessionTitle(s.title); }}
+                                  style={{ background: 'none', border: 'none', color: t.text3, cursor: 'pointer', padding: 2 }}
+                                  title="Edit"
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                                <button 
+                                  onClick={(e) => handleDeleteSession(e, s.id)}
+                                  style={{ background: 'none', border: 'none', color: t.text3, cursor: 'pointer', padding: 2 }}
+                                  title="Delete"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     );

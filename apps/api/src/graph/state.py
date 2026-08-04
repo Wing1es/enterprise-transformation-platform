@@ -7,6 +7,7 @@ class StrategyState(TypedDict, total=False):
     db: Any
     organisation_id: int
     strategy: str
+    api_key: str | None
 
     strategy_result: StrategyExtraction | None
     process_results: list[StageProcesses]

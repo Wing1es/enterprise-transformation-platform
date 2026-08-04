@@ -25,6 +25,6 @@ Value Chain Stage:
 {stage_name}
 """
 
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, api_key=api_key)
 
         return StageProcesses.model_validate_json(response)

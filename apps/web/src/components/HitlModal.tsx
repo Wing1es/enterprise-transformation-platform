@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 export function HitlModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,7 +20,7 @@ export function HitlModal() {
   const handleDecision = async (approved: boolean) => {
     setIsSubmitting(true);
     try {
-      await fetch('http://localhost:8000/api/v1/agent/hitl_response', {
+      await fetch(`${API_URL}/api/v1/agent/hitl_response`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

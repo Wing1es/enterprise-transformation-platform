@@ -45,13 +45,13 @@ from utils.json_parser import clean_and_parse_json
 
 
 class RoleSkillAgent:
-    def run(self, process_name: str, activities: list[str]) -> RoleSkillOutput:
+    def run(self, process_name: str, activities: list[str], api_key: str = "") -> RoleSkillOutput:
         prompt = f"""
 {ROLE_SKILL_PROMPT}
 
 Process Name: {process_name}
 Activities: {json.dumps(activities)}
 """
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, api_key=api_key)
         data = clean_and_parse_json(response)
         return RoleSkillOutput.model_validate(data)

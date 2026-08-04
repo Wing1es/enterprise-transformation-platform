@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,7 +30,7 @@ export function Login() {
     setError('');
     
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -50,6 +53,7 @@ export function Login() {
       localStorage.setItem('auth_token', data.access_token);
       if (data.user?.name) localStorage.setItem('user_name', data.user.name);
       if (data.user?.email) localStorage.setItem('user_email', data.user.email);
+
 
       const isSetupDone = localStorage.getItem('setup_completed') === 'true' || !!localStorage.getItem('org_name');
       if (isSetupDone) {
@@ -150,6 +154,8 @@ export function Login() {
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               />
             </div>
+
+
 
             <button 
               type="submit" 

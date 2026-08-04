@@ -7,19 +7,19 @@ from agents.query_simulation_agent import QuerySimulationAgent
 query_sim_agent = QuerySimulationAgent()
 
 
-def run_simulation(db: Session, action: str, target_id: int, params: dict) -> dict:
+def run_simulation(db: Session, action: str, target_id: int, params: dict, api_key: str = "") -> dict:
     G_live = load_full_graph(db)
     G_sim = copy.deepcopy(G_live)
 
     if action == "automate_activity":
-        return _simulate_automate_activity(G_live, G_sim, target_id, params)
+        return _simulate_automate_activity(G_live, G_sim, target_id, params, api_key)
     elif action == "delay_initiative":
-        return _simulate_delay_initiative(G_live, G_sim, target_id, params)
+        return _simulate_delay_initiative(G_live, G_sim, target_id, params, api_key)
     else:
         return {"error": f"Unsupported simulation action: {action}"}
 
 
-def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_id: int, params: dict) -> dict:
+def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_id: int, params: dict, api_key: str = "") -> dict:
     target_node = f"activity:{activity_id}"
     if not G_sim.has_node(target_node):
         return {"error": f"Activity {activity_id} not found in graph."}
@@ -60,7 +60,7 @@ def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_
 
     target_label = G_sim.nodes[target_node].get("label", f"Activity {activity_id}")
     try:
-        summary = query_sim_agent.narrate_simulation("automate_activity", target_label, diff_payload)
+        summary = query_sim_agent.narrate_simulation("automate_activity", target_label, diff_payload, api_key)
     except Exception:
         summary = f"Automating '{target_label}' optimizes operational throughput, reclassifies associated skills to AI-augmented, and elevates risk governance sign-off requirements."
     diff_payload["summary"] = summary
@@ -68,7 +68,7 @@ def _simulate_automate_activity(G_live: nx.DiGraph, G_sim: nx.DiGraph, activity_
     return diff_payload
 
 
-def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative_id: int, params: dict) -> dict:
+def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative_id: int, params: dict, api_key: str = "") -> dict:
     target_node = f"initiative:{initiative_id}"
     delay_months = params.get("delay_months", 6)
 
@@ -104,7 +104,7 @@ def _simulate_delay_initiative(G_live: nx.DiGraph, G_sim: nx.DiGraph, initiative
 
     target_label = G_sim.nodes[target_node].get("label", f"Initiative {initiative_id}")
     try:
-        summary = query_sim_agent.narrate_simulation("delay_initiative", target_label, diff_payload)
+        summary = query_sim_agent.narrate_simulation("delay_initiative", target_label, diff_payload, api_key)
     except Exception:
         summary = f"Delaying '{target_label}' by {delay_months} months causes cascade delays across downstream dependent initiatives."
     diff_payload["summary"] = summary

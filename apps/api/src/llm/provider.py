@@ -3,7 +3,6 @@ import time
 import logging
 from dotenv import load_dotenv
 from litellm import completion
-from llm.playwright_provider import playwright_llm
 
 # Load .env file
 load_dotenv()
@@ -12,32 +11,41 @@ logger = logging.getLogger(__name__)
 
 class LLM:
     def __init__(self):
-        self.provider = os.getenv("LLM_PROVIDER", "playwright").lower()
-        self.model = os.getenv("LLM_MODEL", "playwright")
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "")
+        self.model = os.getenv("LLM_MODEL", "gpt-4o")
 
-    def invoke(self, prompt: str, max_retries: int = 2) -> str:
-        # Always use playwright provider if specified or if no API key
-        if self.provider == "playwright" or not self.groq_api_key:
-            logger.info("Invoking Playwright Headless Web LLM Provider (Zero API Key)...")
-            return playwright_llm.invoke(prompt)
+    def invoke(self, prompt: str, api_key: str = "", max_retries: int = 2, json_mode: bool = True) -> str:
+        if not api_key:
+            logger.warning("No API Key provided. Set X-LLM-API-Key header in the frontend.")
+            return '{"error": "No API Key provided"}'
+
+        actual_model = self.model
+        if api_key.startswith("gsk_"):
+            actual_model = "groq/llama-3.3-70b-versatile"
+
+        # Groq (and OpenAI) require the word 'json' in the prompt when using response_format={"type": "json_object"}
+        final_prompt = prompt
+        if json_mode and "json" not in final_prompt.lower():
+            final_prompt += "\nEnsure your output is in valid JSON format."
 
         kwargs = {
-            "model": self.model,
+            "model": actual_model,
             "messages": [
                 {
                     "role": "user",
-                    "content": prompt,
+                    "content": final_prompt,
                 }
-            ],
-            "response_format": {"type": "json_object"},
+            ]
         }
 
-        if "groq" in self.model.lower():
-            if self.groq_api_key:
-                kwargs["api_key"] = self.groq_api_key
-        elif "ollama" in self.model.lower():
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+
+        if "groq" in actual_model.lower() or "llama" in actual_model.lower():
+            kwargs["api_key"] = api_key
+        elif "ollama" in actual_model.lower():
             kwargs["api_base"] = os.getenv("OLLAMA_API_BASE", "http://localhost:11434")
+        else:
+            kwargs["api_key"] = api_key
 
         for attempt in range(max_retries):
             try:
@@ -50,10 +58,10 @@ class LLM:
                     logger.warning(f"API Rate Limit encountered. Retrying in {wait_time}s... (Attempt {attempt+1}/{max_retries})")
                     time.sleep(wait_time)
                 else:
-                    logger.warning(f"API Provider failed ({e}). Falling back to Playwright Headless Web Provider...")
-                    return playwright_llm.invoke(prompt)
-
-        return playwright_llm.invoke(prompt)
+                    logger.error(f"API Provider failed: {err_msg}")
+                    return f'{{"error": "LLM Invocation Failed: {err_msg}"}}'
+        
+        return '{"error": "Max retries exceeded"}'
 
 
 llm = LLM()

@@ -59,6 +59,6 @@ Value Chain Stage: {stage_name}
 External Research Evidence: {research['summary']}
 """
 
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, api_key=api_key)
         data = clean_and_parse_json(response)
         return StageProcesses.model_validate(data)

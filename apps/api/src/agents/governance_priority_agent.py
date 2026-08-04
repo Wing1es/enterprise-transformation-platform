@@ -35,7 +35,7 @@ Return ONLY valid JSON matching this structure:
 
 
 class GovernancePriorityAgent:
-    def run(self, opportunity_title: str, description: str, benefits: str, risks: list[str]) -> GovernanceAndPriorityOutput:
+    def run(self, opportunity_title: str, description: str, benefits: str, risks: list[str], api_key: str = "") -> GovernanceAndPriorityOutput:
         # Lookup relevant governance frameworks via MCP server
         frameworks = lookup_governance_frameworks(area="human_oversight", keywords=opportunity_title)
 
@@ -49,6 +49,6 @@ Risks Identified: {json.dumps(risks)}
 Reference Governance Sources: {json.dumps(frameworks)}
 """
 
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, api_key=api_key)
         data = clean_and_parse_json(response)
         return GovernanceAndPriorityOutput.model_validate(data)

@@ -34,7 +34,7 @@ from utils.json_parser import clean_and_parse_json
 
 class StrategyAgent:
 
-    def run(self, strategy: str):
+    def run(self, strategy: str, api_key: str = ""):
 
         prompt = f"""
 {STRATEGY_PROMPT}
@@ -44,7 +44,7 @@ Strategy:
 {strategy}
 """
 
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, api_key=api_key)
         data = clean_and_parse_json(response)
 
         if isinstance(data, dict):

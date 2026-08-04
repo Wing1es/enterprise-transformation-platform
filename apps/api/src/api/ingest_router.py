@@ -2,7 +2,7 @@ import json
 import re
 import queue
 import threading
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -74,15 +74,23 @@ NODE_STEP_MAP = {
 }
 
 
-def _create_sse_generator(statement: str, org_id: int | None, db: Session):
+def _create_sse_generator(statement: str, org_id: int | None, db: Session, api_key: str | None = None):
     org_repo = OrganisationRepository(db)
     orgs = org_repo.list()
     org = org_repo.get(org_id) if org_id else (orgs[0] if orgs else org_repo.create("Meridian Retail Group", "Retail", "Stream Ingest"))
+
+    # Clear old data for a fresh start so old strategies don't linger in the graph
+    org.value_chain_stages.clear()
+    org.processes.clear()
+    org.roles.clear()
+    org.initiatives.clear()
+    db.commit()
 
     initial_state = {
         "db": db,
         "organisation_id": org.id,
         "strategy": statement,
+        "api_key": api_key
     }
 
     def sse_event_generator():
@@ -192,9 +200,15 @@ def _create_sse_generator(statement: str, org_id: int | None, db: Session):
         val_repo = ValueChainRepository(db)
         proc_repo = ProcessRepository(db)
         init_repo = InitiativeRepository(db)
+        role_repo = RoleRepository(db)
+        
         stages = val_repo.list_by_organisation(org.id)
         procs = proc_repo.list_by_organisation(org.id)
         inits = init_repo.list_by_organisation(org.id)
+        roles = role_repo.list_by_organisation(org.id)
+        
+        from db.models.governance_assessment import GovernanceAssessment
+        gov_count = db.query(GovernanceAssessment).count()
 
         summary_payload = {
             "event": "complete",
@@ -206,6 +220,8 @@ def _create_sse_generator(statement: str, org_id: int | None, db: Session):
                 "value_chain_stages_count": len(stages),
                 "processes_count": len(procs),
                 "initiatives_count": len(inits),
+                "roles_count": len(roles),
+                "governance_count": gov_count,
             }
         }
         yield f"data: {json.dumps(summary_payload)}\n\n"
@@ -217,20 +233,22 @@ def _create_sse_generator(statement: str, org_id: int | None, db: Session):
 def stream_strategy_ingestion_get(
     statement: str = "Become an AI-first regional retailer within 3 years — improve margin, reduce stockouts, and personalize customer experience while managing labor costs.",
     org_id: int | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_llm_api_key: str | None = Header(None)
 ):
     """Server-Sent Events (SSE) streaming endpoint via GET."""
-    gen = _create_sse_generator(statement, org_id, db)
+    gen = _create_sse_generator(statement, org_id, db, api_key=x_llm_api_key)
     return StreamingResponse(gen, media_type="text/event-stream")
 
 
 @router.post("/strategy/stream", summary="Stream strategy pipeline progress (POST)")
 def stream_strategy_ingestion_post(
     req: StrategyIngestRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_llm_api_key: str | None = Header(None)
 ):
     """Server-Sent Events (SSE) streaming endpoint via POST."""
-    gen = _create_sse_generator(req.statement, req.org_id, db)
+    gen = _create_sse_generator(req.statement, req.org_id, db, api_key=x_llm_api_key)
     return StreamingResponse(gen, media_type="text/event-stream")
 
 
@@ -321,7 +339,7 @@ def ingest_raw_json_web(req: RawJsonIngestRequest, db: Session = Depends(get_db)
 
 
 @router.post("/strategy")
-def ingest_strategy(req: StrategyIngestRequest, db: Session = Depends(get_db)):
+def ingest_strategy(req: StrategyIngestRequest, db: Session = Depends(get_db), x_llm_api_key: str | None = Header(None)):
     org_repo = OrganisationRepository(db)
     if req.org_id:
         org = org_repo.get(req.org_id)
@@ -333,6 +351,7 @@ def ingest_strategy(req: StrategyIngestRequest, db: Session = Depends(get_db)):
         "db": db,
         "organisation_id": org.id,
         "strategy": req.statement,
+        "api_key": x_llm_api_key
     }
     try:
         result = graph.invoke(initial_state)

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+import { API_URL } from '../config';
+
   User, Building2, Database, Upload, FileText, CheckCircle2,
   ArrowLeft, Save, Sparkles, Shield, Key, LogOut, ChevronRight, HardDrive, Settings
 } from 'lucide-react';
@@ -70,7 +72,7 @@ export function Profile() {
     localStorage.setItem('setup_completed', 'true');
 
     try {
-      await fetch('http://localhost:8000/organisations', {
+      await fetch(`${API_URL}/organisations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,7 +108,7 @@ export function Profile() {
     setDocs(prev => [newDoc, ...prev]);
 
     try {
-      await fetch('http://localhost:8000/ingest/upload_document', {
+      await fetch(`${API_URL}/ingest/upload_document`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

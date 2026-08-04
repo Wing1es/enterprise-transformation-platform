@@ -19,6 +19,8 @@ import {
   Lightbulb, Layers, Target, Database
 } from 'lucide-react';
 import dagre from 'dagre';
+import { API_URL } from '../config';
+
 
 /* ─── Node Metadata & Gradient Palette ─── */
 const getNodeMeta = (type: string) => {
@@ -499,11 +501,6 @@ export function GraphView({ state }: { state?: any }) {
           const actualRoleId = addNode(roleId, role.name, 'role', role, matchedStageNodeId, role.department);
           if (actualRoleId) {
             addEdge(matchedStageNodeId, actualRoleId);
-            (role.skill_transitions || []).forEach((st: any, stIdx: number) => {
-              const skillId = `skill-${st.id || `${rIdx}-${stIdx}`}`;
-              const actualSkillId = addNode(skillId, `${st.current_skill} → ${st.future_skill}`, 'skill', st, actualRoleId, st.classification === 'ai_augmented' ? 'AI' : undefined);
-              if (actualSkillId) addEdge(actualRoleId, actualSkillId);
-            });
           }
         } else {
           unmatchedRoles.push({ role, rIdx });
@@ -519,11 +516,6 @@ export function GraphView({ state }: { state?: any }) {
             const actualRoleId = addNode(roleId, role.name, 'role', role, otherRolesId, role.department);
             if (actualRoleId) {
               addEdge(otherRolesId, actualRoleId);
-              (role.skill_transitions || []).forEach((st: any, stIdx: number) => {
-                const skillId = `skill-${st.id || `${rIdx}-${stIdx}`}`;
-                const actualSkillId = addNode(skillId, `${st.current_skill} → ${st.future_skill}`, 'skill', st, actualRoleId, st.classification === 'ai_augmented' ? 'AI' : undefined);
-                if (actualSkillId) addEdge(actualRoleId, actualSkillId);
-              });
             }
           });
         }
@@ -541,7 +533,7 @@ export function GraphView({ state }: { state?: any }) {
 
   useEffect(() => {
     if (!state) {
-      fetch('http://localhost:8000/api/v1/graph/state')
+      fetch(`${API_URL}/api/v1/graph/state`)
         .then(res => res.ok ? res.json() : null)
         .then(data => { if (data) window.dispatchEvent(new CustomEvent('ti-graph-data', { detail: data })); })
         .catch(err => console.warn('Failed to fetch initial graph state:', err));

@@ -18,7 +18,7 @@ For a retailer, examples include:
 Generate:
 
 1. 5-8 enterprise value chain stages.
-2. 3-6 AI transformation initiatives.
+2. 3-6 strategic transformation initiatives strictly aligned with the provided strategy. DO NOT just generate generic "AI" initiatives. They must be specific to the user's strategy.
 
 Return ONLY valid JSON.
 
@@ -33,8 +33,8 @@ Example:
   ],
   "initiatives": [
     {
-      "name": "AI Demand Forecasting",
-      "description": "Predict inventory demand using historical sales."
+      "name": "Next-Gen Inventory Analytics",
+      "description": "Modernize inventory tracking using real-time data to prevent stockouts."
     }
   ]
 }

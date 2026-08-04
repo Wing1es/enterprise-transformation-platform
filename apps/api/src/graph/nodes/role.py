@@ -26,7 +26,7 @@ def role_node(state):
         if not activities:
             continue
         act_names = [a.name for a in activities]
-        res = agent.run(proc.name, act_names)
+        res = agent.run(proc.name, act_names, api_key=state.get("api_key", ""))
         outputs.append(res)
 
         # Persist Roles

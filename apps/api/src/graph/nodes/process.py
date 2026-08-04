@@ -22,7 +22,7 @@ def process_node(state):
     # Limit to top 3 stages for snappy execution
     for stage in stages[:3]:
         try:
-            res = agent.run(stage.name, state["strategy"])
+            res = agent.run(stage.name, state["strategy"], api_key=state.get("api_key", ""))
             outputs.append(res)
 
             for item in res.items:

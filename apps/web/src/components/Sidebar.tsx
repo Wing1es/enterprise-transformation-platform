@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Send, Bot, Brain, Search, PlayCircle, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
+import { Send, Bot, Brain, Search, PlayCircle, RefreshCw, Zap, ShieldCheck, Settings } from 'lucide-react';
 import { AgentExecutionStream, type ExecutionStep } from './AgentExecutionStream';
+import { API_URL } from '../config';
+
 
 interface Message {
   id: string;
@@ -120,7 +122,7 @@ export function Sidebar() {
     if (isQueryOrSim) {
       // Execute Executive Query / Simulation Endpoint
       try {
-        const res = await fetch('http://localhost:8000/query', {
+        const res = await fetch(`${API_URL}/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: currentInput }),
@@ -159,7 +161,7 @@ export function Sidebar() {
     setExecutionSteps(resetSteps);
 
     try {
-      const response = await fetch(`http://localhost:8000/ingest/strategy/stream?statement=${encodeURIComponent(currentInput)}`);
+      const response = await fetch(`${API_URL}/ingest/strategy/stream?statement=${encodeURIComponent(currentInput)}`);
       if (!response.body) throw new Error('ReadableStream not supported.');
 
       const reader = response.body.getReader();
@@ -207,7 +209,7 @@ export function Sidebar() {
               setExecutionSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
 
               // Fetch updated graph state from database
-              const fullStateRes = await fetch('http://localhost:8000/graph/state');
+              const fullStateRes = await fetch(`${API_URL}/graph/state`);
               if (fullStateRes.ok) {
                 const fullStateData = await fullStateRes.json();
                 window.dispatchEvent(new CustomEvent('graph-update', { detail: fullStateData }));
@@ -238,19 +240,67 @@ export function Sidebar() {
     }
   };
 
+  const [apiKey, setApiKey] = useState(localStorage.getItem('llm_api_key') || '');
+  const [showKey, setShowKey] = useState(false);
+  const [showSettings, setShowSettings] = useState(!localStorage.getItem('llm_api_key'));
+
+  // Sync API Key to localStorage when updated from sidebar
+  React.useEffect(() => {
+    if (apiKey) {
+      localStorage.setItem('llm_api_key', apiKey);
+    } else {
+      localStorage.removeItem('llm_api_key');
+    }
+  }, [apiKey]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '440px', minWidth: '400px', flexShrink: 0, backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ backgroundColor: '#2563eb', borderRadius: '8px', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Brain size={18} color="#ffffff" />
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#f8fafc' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ backgroundColor: '#2563eb', borderRadius: '8px', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Brain size={18} color="#ffffff" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>Transformation AI Engine</h2>
+              <span style={{ fontSize: '0.71875rem', color: '#64748b', fontWeight: 600 }}>Multi-Agent Strategy & Digital Twin</span>
+            </div>
           </div>
-          <div>
-            <h2 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>Transformation AI Engine</h2>
-            <span style={{ fontSize: '0.71875rem', color: '#64748b', fontWeight: 600 }}>Multi-Agent Strategy & Digital Twin</span>
-          </div>
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Settings size={16} />
+            {showSettings ? 'Close' : 'API Settings'}
+          </button>
         </div>
+
+        {/* API Key Input */}
+        {showSettings && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+            <label style={{ fontSize: '0.71875rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              OpenAI / Groq API Key
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                style={{ flex: 1, padding: '6px 10px', fontSize: '0.8125rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
+              />
+              <button
+                onClick={() => setShowKey(!showKey)}
+                style={{ padding: '6px 10px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+              >
+                {showKey ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Sample Strategy Prompts */}

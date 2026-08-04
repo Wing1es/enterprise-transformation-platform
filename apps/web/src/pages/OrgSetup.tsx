@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Upload, FileText, CheckCircle2, ArrowRight, Sparkles, Shield, Database, SkipForward } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 interface UploadedDoc {
   id: string;
@@ -12,7 +14,7 @@ interface UploadedDoc {
 
 export function OrgSetup() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 State - Preserve user custom settings if already set in localStorage
   const [orgName, setOrgName] = useState(() => localStorage.getItem('org_name') || 'Transformation Retail Group');
@@ -21,6 +23,7 @@ export function OrgSetup() {
     localStorage.getItem('org_strategy') ||
     'Become an AI-first regional retailer within 3 years — improve margin, reduce stockouts, and personalize customer experience while managing labor costs.'
   );
+  const [llmApiKey, setLlmApiKey] = useState(localStorage.getItem('llm_api_key') || '');
 
   // Step 2 State
   const [docTitle, setDocTitle] = useState('');
@@ -47,7 +50,7 @@ export function OrgSetup() {
     setDocs(prev => [newDoc, ...prev]);
 
     try {
-      const res = await fetch('http://localhost:8000/ingest/upload_document', {
+      const res = await fetch(`${API_URL}/ingest/upload_document`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,10 +86,13 @@ export function OrgSetup() {
     localStorage.setItem('org_name', finalOrg);
     localStorage.setItem('org_industry', finalInd);
     localStorage.setItem('org_strategy', strategy);
+    if (llmApiKey) {
+      localStorage.setItem('llm_api_key', llmApiKey);
+    }
     localStorage.setItem('setup_completed', 'true');
 
     try {
-      await fetch('http://localhost:8000/organisations', {
+      await fetch(`${API_URL}/organisations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,10 +152,26 @@ export function OrgSetup() {
           }}>
             <span style={{
               width: 20, height: 20, borderRadius: '50%',
-              backgroundColor: step === 2 ? 'rgba(14,165,233,0.15)' : '#1f1f23',
+              backgroundColor: step === 2 ? 'rgba(14,165,233,0.15)' : step > 2 ? 'rgba(34,197,94,0.15)' : '#1f1f23',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
+              color: step === 2 ? '#0ea5e9' : step > 2 ? '#22c55e' : '#71717a'
             }}>2</span>
             Vector Ingestion
+          </div>
+
+          <span style={{ color: '#444', fontSize: 12 }}>→</span>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 700,
+            color: step === 3 ? '#0ea5e9' : '#71717a',
+          }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '50%',
+              backgroundColor: step === 3 ? 'rgba(14,165,233,0.15)' : '#1f1f23',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
+            }}>3</span>
+            API Key
           </div>
         </div>
 
@@ -423,7 +445,7 @@ export function OrgSetup() {
               </button>
 
               <button
-                onClick={handleSkipOrFinish}
+                onClick={() => setStep(3)}
                 style={{
                   all: 'unset', cursor: 'pointer', flex: 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -432,9 +454,73 @@ export function OrgSetup() {
                   fontWeight: 700, fontSize: 14,
                 }}
               >
-                Launch Digital Twin Workspace
+                Continue to API Key
                 <ArrowRight size={16} />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: API KEY */}
+        {step === 3 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <Shield size={24} color="#0ea5e9" />
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+                Connect AI Provider
+              </h2>
+            </div>
+            <p style={{ fontSize: 14, color: '#888', margin: '0 0 28px', lineHeight: 1.5 }}>
+              Enter your OpenAI or Groq API key to power the digital twin's reasoning engine. Your key is stored locally in your browser and is only sent directly to the LLM endpoints.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#aaa', marginBottom: 8 }}>
+                  LLM API Key
+                </label>
+                <input
+                  type="password"
+                  value={llmApiKey}
+                  onChange={e => setLlmApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: 10,
+                    backgroundColor: '#18181b', border: '1px solid #27272a',
+                    color: '#fff', fontSize: 14, outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
+                <button
+                  onClick={() => setStep(2)}
+                  style={{
+                    all: 'unset', cursor: 'pointer',
+                    padding: '14px 20px', borderRadius: 12,
+                    backgroundColor: '#18181b', border: '1px solid #27272a',
+                    color: '#aaa', fontWeight: 600, fontSize: 14,
+                  }}
+                >
+                  Back
+                </button>
+
+                <button
+                  onClick={handleSkipOrFinish}
+                  style={{
+                    all: 'unset', cursor: 'pointer', flex: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '14px', borderRadius: 12,
+                    backgroundColor: '#0ea5e9',
+                    color: '#fff', fontWeight: 700, fontSize: 14,
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  Launch Digital Twin Workspace
+                  <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}

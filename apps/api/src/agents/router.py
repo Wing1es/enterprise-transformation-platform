@@ -31,7 +31,7 @@ Return ONLY valid JSON matching this schema:
     "rationale": "<short reason>"
 }}
 """
-        response_text = llm.invoke(prompt)
+        response_text = llm.invoke(prompt, api_key=api_key)
         try:
             return RouteDecision.model_validate_json(response_text)
         except Exception:
